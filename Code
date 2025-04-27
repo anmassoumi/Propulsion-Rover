@@ -1,422 +1,204 @@
 This is the final code used to run our autonomous robot (in Arduino): 
 // Imported libraries for the code
-
 #include <Servo.h>
-
 #include <Wire.h>
-
 #include <LIS3MDL.h>
-
 #include <LSM6.h>
 
-
 // Initializing Magnetometer with calibrated values and servo
-
 LIS3MDL mag;
-
 LSM6 imu;
-
 LIS3MDL::vector<int16_t> m_min = {  +710,   +605,  -5034}; // Calibrated min magnetometer value
-
 LIS3MDL::vector<int16_t> m_max = { +3465,  +3858,  -3606}; // Calibrated max magnetometer value
-
 Servo myservo;
 
-
-
 // Proportional and Derivative Control Variables
-
 float desiredHeading = 0.0; // Initizlizes target heading
-
 float errorVal = 0.0; // This initizlizes the error value, set it as zero
-
 int servoMax = 25; // This initilize and sets the value for the servoMax
-
 float Kp = 1; // Proportional gain
-
 float Kd = 0.2; // Derivative gain — tune this experimentally
 
-
 // Time related Controls
-
 float lastError = 0.0;
-
 unsigned long lastTime = 0;
-
-
 int servoPin = 3;       // Pin that the servomotor is connected to
-
 int solenoidPin = 2;    // Pin that the mosfet is conected to
-
 int switchPin = 7;      // Pin that the switch is conected to
-
 int pos = 90;            // variable to store the servo position
-
 int switchState;        // variable that stores the Reed switch state
-
 int servoDir = 0;       // variable that stores the direction the motor is turning in the demo program
-
 int solenoidState = LOW;  // variable that stores if solenoid is on or off        
-
 unsigned long previousMillis = 0;        // will store last time solenoid was updated
-
 const long interval = 1500;           // interval at which to turn solenoid on and off (milliseconds)
-
 int pistonCount = 0;                  // Initizlizes Pisston Counter
-
-
 int counter = 0;    // Initializes magnetometer error catching counter
-
-
 int Turndistance = 10;   //inches
-
 int lastSwitchState = 0;    // Initializes assisting Limit Switch State Tracker
-
 int switchCounter = 0;      // Initizlizes Limit Switch Counter
-
 bool turning = false;
-
-
 void setup() {
-
- 
-
   myservo.attach(servoPin);               // attaches the servo on pin 9 to the servo object
-
   pinMode(solenoidPin, OUTPUT);           //Sets the pin as an output
-
   pinMode(switchPin, INPUT_PULLUP);       //Sets the pin as an input_pullup
-
   Serial.begin(9600);                     // starts serial communication @ 9600 bps
-
   Wire.begin();
 
-
 // Prints error statements if no data is being read from the magnetomter
-
   if (!mag.init())
-
   {
-
     Serial.println("Failed to detect and initialize LIS3MDL magnetometer!");
-
     while (1);
-
   }
-
   mag.enableDefault();
-
-
   if (!imu.init())
-
   {
-
     Serial.println("Failed to detect and initialize LSM6 IMU!");
-
     while (1);
-
   }
-
   imu.enableDefault();
 
-
- 
-
 // Sends servo to neutral point
-
   myservo.write(pos);
-
 }
-
- 
-
 void loop() {
 
- 
-
 // Error catch function that only takes heading if enough time has passed for magnetometer to turn on
-
 // This sets the desired heading to be whatever the initial heading is when the robot is turned on
-
- 
-
   unsigned long curTime = millis();
-
   if( counter == 0 && curTime > 1000){
-
     delay(15000);
-
     desiredHeading = computeHeading();
-
     counter++;
-
   }
-
-
   if (!turning && millis() >= 30000) {
-
       turning = true;
-
       desiredHeading = desiredHeading + 90;
-
       if (desiredHeading > 360) {
-
         desiredHeading = desiredHeading - 360;
-
       }
-
     }
-
-
- 
 
 ////////////// SERVOMOTOR ///////////////////////////////////////////////////
-
 // This code reads in heading, sends it to the Proportional Error Function
-
 // receives the error value, and sends the servo to the adjusted position  
-
- 
-
 // Takes in Magnetometer Reading and defines the heading
-
   mag.read();
-
   imu.read();
-
-  float heading = computeHeading();
-
-
-// Sends heading to Error function, stores the returned value, and sends Servo to
+  float heading = computeHeading(); // Sends heading to Error function, stores the returned value, and sends Servo to
 
 // Proportional position adjustment
-
   errorVal = ServoAdjustment(heading);
-
   pos = 90 - errorVal;
-
   pos = constrain(pos, 90 - servoMax, 90 + servoMax);
-
   Serial.print("Desired Servo Angle    ");
-
   Serial.print(pos);
-
   myservo.write(pos);
 
-
-
-
 ////////////// SOLENOID VALVE ///////////////////////////////////////////////////
-
 // This code uses the optimized interval value from the Experimental Results to
-
 // fire the piston after the interval has passed, using the firePiston function
-
 // Limited Piston Fire count to 30
-
   unsigned long currentMillis = millis();
-
   if (pistonCount < 40 && currentMillis - previousMillis >= interval) {
-
     previousMillis = currentMillis;
-
     firePiston();  //Switch Solenoid ON/oFF
-
     pistonCount++;
-
   }
 
-
-
 ////////////// REED SWITCH ///////////////////////////////////////////////////
-
 // Limit Switch Counter code that operates while piston is not on
-
   switchState = digitalRead(switchPin);
-
   // Count limit switch activations on state change
-
     int currentSwitchState = digitalRead(switchPin);
-
     if (currentSwitchState == 0 && lastSwitchState == 1) {
-
         switchCounter++;
-
     }
-
     lastSwitchState = currentSwitchState;
-
     int distance = (switchCounter * 8.64) / 4;
 
-   
-
 ////////////// Serial Print  ///////////////////////////////////////////////////
-
 // Prints Magnetometer reading and Distance Traveled (Resolution of 4 for the Limit
-
 // Switch count
-
   Serial.print("      Desired Heading:   ");
-
   Serial.print(desiredHeading);
-
   Serial.print("Distance Traveled   ");
-
   Serial.print((switchCounter * 8.64) / 4);
-
   Serial.print("   Magnetometer: ");
-
   Serial.println(heading);
-
- 
-
- 
-
-
  delay(100);
-
 }
-
-
-
 
 //heading function for magnetometer
-
-
 template <typename T> float computeHeading(LIS3MDL::vector<T> from)
-
 {
-
   LIS3MDL::vector<int32_t> temp_m = {mag.m.x, mag.m.y, mag.m.z};
-
-
-  // copy acceleration readings from LSM6::vector into an LIS3MDL::vector
-
+  
+// copy acceleration readings from LSM6::vector into an LIS3MDL::vector
   LIS3MDL::vector<int16_t> a = {imu.a.x, imu.a.y, imu.a.z};
-
-
-  // subtract offset (average of min and max) from magnetometer readings
-
+ 
+// subtract offset (average of min and max) from magnetometer readings
   temp_m.x -= ((int32_t)m_min.x + m_max.x) / 2;
-
   temp_m.y -= ((int32_t)m_min.y + m_max.y) / 2;
-
   temp_m.z -= ((int32_t)m_min.z + m_max.z) / 2;
-
-
-  // compute E and N
-
+ 
+// compute E and N
   LIS3MDL::vector<float> E;
-
   LIS3MDL::vector<float> N;
-
   LIS3MDL::vector_cross(&temp_m, &a, &E);
-
   LIS3MDL::vector_normalize(&E);
-
   LIS3MDL::vector_cross(&a, &E, &N);
-
   LIS3MDL::vector_normalize(&N);
-
-
-  // compute heading
-
+ 
+// compute heading
   float heading = atan2(LIS3MDL::vector_dot(&E, &from), LIS3MDL::vector_dot(&N, &from)) * 180 / PI;
-
   if (heading < 0) heading += 360;
-
   return heading;
-
 }
-
-
 /*
-
 Returns the angular difference in the horizontal plane between a
-
 default vector (the +X axis) and north, in degrees.
-
 */
-
 float computeHeading()
-
 {
-
   return computeHeading((LIS3MDL::vector<int>){1, 0, 0});
-
 }
-
-
 
 // function for firing piston
-
 void firePiston() {
-
     digitalWrite(solenoidPin, HIGH);
-
     unsigned long fireStartTime = millis();
 
 // Limit switch Counter that is active while Piston is firing
-
     int currentSwitchState = digitalRead(switchPin);
-
     while (millis() - fireStartTime < 500) {
-
       if (currentSwitchState == 0 && lastSwitchState == 1) {
-
         switchCounter++;
-
     }
-
     lastSwitchState = currentSwitchState;
-
     }
-
-   
-
     digitalWrite(solenoidPin, LOW);
-
 }
-
-
 
 // Proportional and Derivative Error Function Calculator
 
 // Calculates Error Adjustment Based off desired Heading
-
 float ServoAdjustment(float currentHeading) {
-
     float currentTime = millis();
-
     float derivative = 0;
-
-    float deltaTime = (currentTime - lastTime) / 1000.0; // convert to seconds
-
-
+    float deltaTime = (currentTime - lastTime) / 1000.0; // convert to seconds 
    
-
-    // Proportional control for steering
-
+// Proportional control for steering
     float error = fmod((currentHeading - desiredHeading + 540), 360) - 180;;
-
-
     if (deltaTime > 0) {
-
         derivative = (error - lastError) / deltaTime;
-
     }
-
    
-
-    // Limit steering range
-
+// Limit steering range
     float correction = Kp * error + Kd * derivative;
-
     correction = constrain(correction, -servoMax, servoMax);
-
    
-
-    // Returns the Corrected Value
+// Returns the Corrected Value
 
     return correction;
 
