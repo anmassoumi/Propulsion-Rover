@@ -1,6 +1,7 @@
 # Propulsion-Rover
 
 Robot:
+
 ![Image](https://github.com/user-attachments/assets/93434f51-44bd-41b7-94bb-3b5656512eef)
 ![Image](https://github.com/user-attachments/assets/c55a7e60-f2d1-42f6-a7db-17c0151b9f64)
 ![Image](https://github.com/user-attachments/assets/1b92e3d2-68f4-42bd-877a-42906026e93f)
@@ -13,6 +14,7 @@ The second primary design goal was the propulsion system, where we utilized a un
 Our design stood out because of its stability. The servo-powered steering mechanism minimized sources of friction, providing smooth and responsive handling. The Ackerman steering further reduced slippage, allowing the robot to maneuver effectively by ensuring the inner and outer wheels followed distinct radii. Additionally, we placed the electronics and propulsion system near the robot's base to keep the center of mass low, which increased stability. The spread-out wheels provided ample ground contact area, ensuring better grip and less sway. Thanks to these design features, the robot maintained consistent forward motion with no wobbling, setting it apart from others.
 
 CAD Model:
+
 ![Image](https://github.com/user-attachments/assets/7ad23d01-5027-4530-a0cf-face75efc11d)
 ![Image](https://github.com/user-attachments/assets/16d1a6ee-cb1c-4af5-9d1e-4cd74763c7be)
 ![Image](https://github.com/user-attachments/assets/bb04466d-6fff-4fcc-9279-096ce6406476)
