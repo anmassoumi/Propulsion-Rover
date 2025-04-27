@@ -2,8 +2,7 @@
 
 Robot:
 
-![Image](https://github.com/user-attachments/assets/93434f51-44bd-41b7-94bb-3b5656512eef)
-![Image](https://github.com/user-attachments/assets/c55a7e60-f2d1-42f6-a7db-17c0151b9f64)
+![Image](https://github.com/user-attachments/assets/93434f51-44bd-41b7-94bb-3b5656512eef) ![Image](https://github.com/user-attachments/assets/c55a7e60-f2d1-42f6-a7db-17c0151b9f64)
 ![Image](https://github.com/user-attachments/assets/1b92e3d2-68f4-42bd-877a-42906026e93f)
 
 Mechanical Design
